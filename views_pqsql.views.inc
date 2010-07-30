@@ -4,7 +4,7 @@
 /**
  * Implements hook_views_plguins().
  */
-function views_pqsql_views_plguins() {
+function views_pqsql_views_plugins() {
   return array(
     'query' => array(
       'pqsql_query' => array(
@@ -13,9 +13,6 @@ function views_pqsql_views_plguins() {
         'handler' => 'views_pqsql_plugin_query_pqsql',
         'parent' => 'views_query',
       ),
-    ),
-    'pager' => array(
-      'time'
     ),
   );
 }
