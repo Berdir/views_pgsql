@@ -29,7 +29,7 @@
  *
  * @return the name of the previously active database or FALSE if non was found.
  */
-function views_pqsql_set_active($name = 'default') {
+function views_pgsql_set_active($name = 'default') {
   global $db_url, $db_type, $active_db;
   static $db_conns, $active_name = FALSE;
 
@@ -57,7 +57,7 @@ function views_pqsql_set_active($name = 'default') {
       _db_error_page("The database type '". $db_type ."' is unsupported. Please use either 'mysql' or 'mysqli' for MySQL, or 'pgsql' for PostgreSQL databases.");
     }*/
 
-    $db_conns[$name] = views_pqsql_connect($connect_url);
+    $db_conns[$name] = views_pgsql_connect($connect_url);
   }
 
   $previous_name = $active_name;
@@ -72,10 +72,10 @@ function views_pqsql_set_active($name = 'default') {
 /**
  * Report database status.
  */
-function views_pqsql_status_report() {
+function views_pgsql_status_report() {
   $t = get_t();
 
-  $version = views_pqsql_version();
+  $version = views_pgsql_version();
 
   $form['pgsql'] = array(
     'title' => $t('PostgreSQL database'),
@@ -95,8 +95,8 @@ function views_pqsql_status_report() {
  *
  * @return Database server version
  */
-function views_pqsql_version() {
-  return views_pqsql_result(views_pqsql_query("SHOW SERVER_VERSION"));
+function views_pgsql_version() {
+  return views_pgsql_result(views_pgsql_query("SHOW SERVER_VERSION"));
 }
 
 /**
@@ -104,7 +104,7 @@ function views_pqsql_version() {
  * 
  * @see db_connect
  */
-function views_pqsql_connect($url) {
+function views_pgsql_connect($url) {
   // Check if PostgreSQL support is present in PHP
   if (!function_exists('pg_connect')) {
     drupal_set_message(t('Unable to use the PostgreSQL database because the PostgreSQL extension for PHP is not installed. Check your <code>php.ini</code> to see how you can enable it.'));
@@ -139,7 +139,7 @@ function views_pqsql_connect($url) {
   $connection = @pg_connect($conn_string);
   if (!$connection) {
     require_once './includes/unicode.inc';
-    _views_pqsql_error_page(decode_entities($php_errormsg));
+    _views_pgsql_error_page(decode_entities($php_errormsg));
   }
 
   // Restore error tracking setting
@@ -173,22 +173,22 @@ function views_pqsql_connect($url) {
  *   A database query result resource, or FALSE if the query was not
  *   executed correctly.
  */
-function views_pqsql_query($query) {
+function views_pgsql_query($query) {
   $args = func_get_args();
   array_shift($args);
   $query = db_prefix_tables($query);
   if (isset($args[0]) and is_array($args[0])) { // 'All arguments in one array' syntax
     $args = $args[0];
   }
-  _views_pqsql_query_callback($args, TRUE);
-  $query = preg_replace_callback(DB_QUERY_REGEXP, '_views_pqsql_query_callback', $query);
-  return _views_pqsql_query($query);
+  _views_pgsql_query_callback($args, TRUE);
+  $query = preg_replace_callback(DB_QUERY_REGEXP, '_views_pgsql_query_callback', $query);
+  return _views_pgsql_query($query);
 }
 
 /**
- * Helper function for views_pqsql_query().
+ * Helper function for views_pgsql_query().
  */
-function _views_pqsql_query($query, $debug = 0) {
+function _views_pgsql_query($query, $debug = 0) {
   global $active_db, $last_result, $queries;
 
   if (variable_get('dev_query', 0)) {
@@ -226,12 +226,12 @@ function _views_pqsql_query($query, $debug = 0) {
  * Fetch one result row from the previous query as an object.
  *
  * @param $result
- *   A database query result resource, as returned from views_pqsql_query().
+ *   A database query result resource, as returned from views_pgsql_query().
  * @return
  *   An object representing the next row of the result, or FALSE. The attributes
  *   of this object are the table fields selected by the query.
  */
-function views_pqsql_fetch_object($result) {
+function views_pgsql_fetch_object($result) {
   if ($result) {
     return pg_fetch_object($result);
   }
@@ -241,13 +241,13 @@ function views_pqsql_fetch_object($result) {
  * Fetch one result row from the previous query as an array.
  *
  * @param $result
- *   A database query result resource, as returned from views_pqsql_query().
+ *   A database query result resource, as returned from views_pgsql_query().
  * @return
  *   An associative array representing the next row of the result, or FALSE.
  *   The keys of this object are the names of the table fields selected by the
  *   query, and the values are the field values for this result row.
  */
-function views_pqsql_fetch_array($result) {
+function views_pgsql_fetch_array($result) {
   if ($result) {
     return pg_fetch_assoc($result);
   }
@@ -257,14 +257,14 @@ function views_pqsql_fetch_array($result) {
  * Return an individual result field from the previous query.
  *
  * Only use this function if exactly one field is being selected; otherwise,
- * use views_pqsql_fetch_object() or views_pqsql_fetch_array().
+ * use views_pgsql_fetch_object() or views_pgsql_fetch_array().
  *
  * @param $result
- *   A database query result resource, as returned from views_pqsql_query().
+ *   A database query result resource, as returned from views_pgsql_query().
  * @return
  *   The resulting field or FALSE.
  */
-function views_pqsql_result($result) {
+function views_pgsql_result($result) {
   if ($result && pg_num_rows($result) > 0) {
     $array = pg_fetch_row($result);
     return $array[0];
@@ -275,7 +275,7 @@ function views_pqsql_result($result) {
 /**
  * Determine whether the previous query caused an error.
  */
-function views_pqsql_error() {
+function views_pgsql_error() {
   global $active_db;
   return pg_last_error($active_db);
 }
@@ -288,14 +288,14 @@ function views_pqsql_error() {
  * @param $field
  *   The name of the autoincrement field.
  */
-function views_pqsql_last_insert_id($table, $field) {
-  return views_pqsql_result(views_pqsql_query("SELECT CURRVAL('{". views_pqsql_escape_table($table) ."}_". views_pqsql_escape_table($field) ."_seq')"));
+function views_pgsql_last_insert_id($table, $field) {
+  return views_pgsql_result(views_pgsql_query("SELECT CURRVAL('{". views_pgsql_escape_table($table) ."}_". views_pgsql_escape_table($field) ."_seq')"));
 }
 
 /**
  * Determine the number of rows changed by the preceding query.
  */
-function views_pqsql_affected_rows() {
+function views_pgsql_affected_rows() {
   global $last_result;
   return empty($last_result) ? 0 : pg_affected_rows($last_result);
 }
@@ -303,7 +303,7 @@ function views_pqsql_affected_rows() {
 /**
  * Runs a limited-range query in the active database.
  *
- * Use this as a substitute for views_pqsql_query() when a subset of the query
+ * Use this as a substitute for views_pgsql_query() when a subset of the query
  * is to be returned.
  * User-supplied arguments to the query should be passed in as separate
  * parameters so that they can be properly escaped to avoid SQL injection
@@ -329,7 +329,7 @@ function views_pqsql_affected_rows() {
  *   A database query result resource, or FALSE if the query was not executed
  *   correctly.
  */
-function views_pqsql_query_range($query) {
+function views_pgsql_query_range($query) {
   $args = func_get_args();
   $count = array_pop($args);
   $from = array_pop($args);
@@ -339,23 +339,23 @@ function views_pqsql_query_range($query) {
   if (isset($args[0]) and is_array($args[0])) { // 'All arguments in one array' syntax
     $args = $args[0];
   }
-  _views_pqsql_query_callback($args, TRUE);
-  $query = preg_replace_callback(DB_QUERY_REGEXP, '_views_pqsql_query_callback', $query);
+  _views_pgsql_query_callback($args, TRUE);
+  $query = preg_replace_callback(DB_QUERY_REGEXP, '_views_pgsql_query_callback', $query);
   $query .= ' LIMIT '. (int)$count .' OFFSET '. (int)$from;
-  return _views_pqsql_query($query);
+  return _views_pgsql_query($query);
 }
 
 /**
  * Runs a SELECT query and stores its results in a temporary table.
  *
- * Use this as a substitute for views_pqsql_query() when the results need to stored
+ * Use this as a substitute for views_pgsql_query() when the results need to stored
  * in a temporary table. Temporary tables exist for the duration of the page
  * request.
  * User-supplied arguments to the query should be passed in as separate parameters
  * so that they can be properly escaped to avoid SQL injection attacks.
  *
  * Note that if you need to know how many results were returned, you should do
- * a SELECT COUNT(*) on the temporary table afterwards. views_pqsql_affected_rows() does
+ * a SELECT COUNT(*) on the temporary table afterwards. views_pgsql_affected_rows() does
  * not give consistent result across different database types in this case.
  *
  * @param $query
@@ -377,7 +377,7 @@ function views_pqsql_query_range($query) {
  *   A database query result resource, or FALSE if the query was not executed
  *   correctly.
  */
-function views_pqsql_query_temporary($query) {
+function views_pgsql_query_temporary($query) {
   $args = func_get_args();
   $tablename = array_pop($args);
   array_shift($args);
@@ -386,15 +386,15 @@ function views_pqsql_query_temporary($query) {
   if (isset($args[0]) and is_array($args[0])) { // 'All arguments in one array' syntax
     $args = $args[0];
   }
-  _views_pqsql_query_callback($args, TRUE);
-  $query = preg_replace_callback(DB_QUERY_REGEXP, '_views_pqsql_query_callback', $query);
-  return _views_pqsql_query($query);
+  _views_pgsql_query_callback($args, TRUE);
+  $query = preg_replace_callback(DB_QUERY_REGEXP, '_views_pgsql_query_callback', $query);
+  return _views_pgsql_query($query);
 }
 
 /**
  * Helper function for db_query().
  */
-function _views_pqsql_query_callback($match, $init = FALSE) {
+function _views_pgsql_query_callback($match, $init = FALSE) {
   static $args = NULL;
   if ($init) {
     $args = $match;
@@ -417,7 +417,7 @@ function _views_pqsql_query_callback($match, $init = FALSE) {
       // We don't need db_escape_string as numbers are db-safe.
       return $value;
     case '%s':
-      return views_pqsql_escape_string(array_shift($args));
+      return views_pgsql_escape_string(array_shift($args));
     case '%n':
       // Numeric values have arbitrary precision, so can't be treated as float.
       // is_numeric() allows hex values (0xFF), but they are not valid.
@@ -428,7 +428,7 @@ function _views_pqsql_query_callback($match, $init = FALSE) {
     case '%f':
       return (float) array_shift($args);
     case '%b': // binary data
-      return views_pqsql_encode_blob(array_shift($args));
+      return views_pgsql_encode_blob(array_shift($args));
   }
 }
 
@@ -441,7 +441,7 @@ function _views_pqsql_query_callback($match, $init = FALSE) {
  * @return
  *  Encoded data.
  */
-function views_pqsql_encode_blob($data) {
+function views_pgsql_encode_blob($data) {
   return "'". pg_escape_bytea($data) ."'";
 }
 
@@ -454,7 +454,7 @@ function views_pqsql_encode_blob($data) {
  * @return
  *  Decoded data.
  */
-function views_pqsql_decode_blob($data) {
+function views_pgsql_decode_blob($data) {
   return pg_unescape_bytea($data);
 }
 
@@ -462,7 +462,7 @@ function views_pqsql_decode_blob($data) {
  * Prepare user input for use in a database query, preventing SQL injection attacks.
  * Note: This function requires PostgreSQL 7.2 or later.
  */
-function views_pqsql_escape_string($text) {
+function views_pgsql_escape_string($text) {
   return pg_escape_string($text);
 }
 
@@ -470,39 +470,39 @@ function views_pqsql_escape_string($text) {
  * Lock a table.
  * This function automatically starts a transaction.
  */
-function views_pqsql_lock_table($table) {
-  views_pqsql_query('BEGIN; LOCK TABLE {'. views_pqsql_escape_table($table) .'} IN EXCLUSIVE MODE');
+function views_pgsql_lock_table($table) {
+  views_pgsql_query('BEGIN; LOCK TABLE {'. views_pgsql_escape_table($table) .'} IN EXCLUSIVE MODE');
 }
 
 /**
  * Unlock all locked tables.
  * This function automatically commits a transaction.
  */
-function views_pqsql_unlock_tables() {
-  views_pqsql_query('COMMIT');
+function views_pgsql_unlock_tables() {
+  views_pgsql_query('COMMIT');
 }
 
 /**
  * Check if a table exists.
  */
-function views_pqsql_table_exists($table) {
-  return (bool) views_pqsql_result(views_pqsql_query("SELECT COUNT(*) FROM pg_class WHERE relname = '{". views_pqsql_escape_table($table) ."}'"));
+function views_pgsql_table_exists($table) {
+  return (bool) views_pgsql_result(views_pgsql_query("SELECT COUNT(*) FROM pg_class WHERE relname = '{". views_pgsql_escape_table($table) ."}'"));
 }
 
 /**
  * Check if a column exists in the given table.
  */
-function views_pqsql_column_exists($table, $column) {
-  return (bool) views_pqsql_result(views_pqsql_query("SELECT COUNT(pg_attribute.attname) FROM pg_class, pg_attribute WHERE pg_attribute.attrelid = pg_class.oid AND pg_class.relname = '{". views_pqsql_escape_table($table) ."}' AND attname = '". views_pqsql_escape_table($column) ."'"));
+function views_pgsql_column_exists($table, $column) {
+  return (bool) views_pgsql_result(views_pgsql_query("SELECT COUNT(pg_attribute.attname) FROM pg_class, pg_attribute WHERE pg_attribute.attrelid = pg_class.oid AND pg_class.relname = '{". views_pgsql_escape_table($table) ."}' AND attname = '". views_pgsql_escape_table($column) ."'"));
 }
 
 /**
  * Verify if the database is set up correctly.
  */
-function views_pqsql_check_setup() {
+function views_pgsql_check_setup() {
   $t = get_t();
 
-  $encoding = views_pqsql_result(views_pqsql_query('SHOW server_encoding'));
+  $encoding = views_pgsql_result(views_pgsql_query('SHOW server_encoding'));
   if (!in_array(strtolower($encoding), array('unicode', 'utf8'))) {
     drupal_set_message($t('Your PostgreSQL database is set up with the wrong character encoding (%encoding). It is possible it will not work as expected. It is advised to recreate it with UTF-8/Unicode encoding. More information can be found in the <a href="@url">PostgreSQL documentation</a>.', array('%encoding' => $encoding, '@url' => 'http://www.postgresql.org/docs/7.4/interactive/multibyte.html')), 'status');
   }
@@ -519,7 +519,7 @@ function views_pqsql_check_setup() {
  * @param $query Query to apply the wrapper to
  * @return SQL query with the DISTINCT wrapper surrounding the given table.field.
  */
-function views_pqsql_distinct_field($table, $field, $query) {
+function views_pgsql_distinct_field($table, $field, $query) {
   if (!preg_match('/FROM\s+\S+\s+AS/si', $query)
   && !preg_match('/DISTINCT\s+ON\s*\(\s*(' . $table . '\s*\.\s*)?' . $field . '\s*\)/si', $query)
   && !preg_match('/DISTINCT[ (]' . $field . '/si', $query)
@@ -544,7 +544,7 @@ function views_pqsql_distinct_field($table, $field, $query) {
  * This maps a generic data type in combination with its data size
  * to the engine-specific data type.
  */
-function views_pqsql_type_map() {
+function views_pgsql_type_map() {
   // Put :normal last so it gets preserved by array_flip.  This makes
   // it much easier for modules (such as schema.module) to map
   // database types back into schema types.
@@ -596,10 +596,10 @@ function views_pqsql_type_map() {
  * @return
  *   An array of SQL statements to create the table.
  */
-function views_pqsql_create_table_sql($name, $table) {
+function views_pgsql_create_table_sql($name, $table) {
   $sql_fields = array();
   foreach ($table['fields'] as $field_name => $field) {
-    $sql_fields[] = _views_pqsql_create_field_sql($field_name, _views_pqsql_process_field($field));
+    $sql_fields[] = _views_pgsql_create_field_sql($field_name, _views_pgsql_process_field($field));
   }
 
   $sql_keys = array();
@@ -623,20 +623,20 @@ function views_pqsql_create_table_sql($name, $table) {
 
   if (isset($table['indexes']) && is_array($table['indexes'])) {
     foreach ($table['indexes'] as $key_name => $key) {
-      $statements[] = _views_pqsql_create_index_sql($name, $key_name, $key);
+      $statements[] = _views_pgsql_create_index_sql($name, $key_name, $key);
     }
   }
 
   return $statements;
 }
 
-function _views_pqsql_create_index_sql($table, $name, $fields) {
+function _views_pgsql_create_index_sql($table, $name, $fields) {
   $query = 'CREATE INDEX {'. $table .'}_'. $name .'_idx ON {'. $table .'} (';
-  $query .= _views_pqsql_create_key_sql($fields) .')';
+  $query .= _views_pgsql_create_key_sql($fields) .')';
   return $query;
 }
 
-function _views_pqsql_create_key_sql($fields) {
+function _views_pgsql_create_key_sql($fields) {
   $ret = array();
   foreach ($fields as $field) {
     if (is_array($field)) {
@@ -649,18 +649,18 @@ function _views_pqsql_create_key_sql($fields) {
   return implode(', ', $ret);
 }
 
-function _views_pqsql_create_keys(&$ret, $table, $new_keys) {
+function _views_pgsql_create_keys(&$ret, $table, $new_keys) {
   if (isset($new_keys['primary key'])) {
-    views_pqsql_add_primary_key($ret, $table, $new_keys['primary key']);
+    views_pgsql_add_primary_key($ret, $table, $new_keys['primary key']);
   }
   if (isset($new_keys['unique keys'])) {
     foreach ($new_keys['unique keys'] as $name => $fields) {
-      views_pqsql_add_unique_key($ret, $table, $name, $fields);
+      views_pgsql_add_unique_key($ret, $table, $name, $fields);
     }
   }
   if (isset($new_keys['indexes'])) {
     foreach ($new_keys['indexes'] as $name => $fields) {
-      views_pqsql_add_index($ret, $table, $name, $fields);
+      views_pgsql_add_index($ret, $table, $name, $fields);
     }
   }
 }
@@ -671,13 +671,13 @@ function _views_pqsql_create_keys(&$ret, $table, $new_keys) {
  * @param $field
  *   A field description array, as specified in the schema documentation.
  */
-function _views_pqsql_process_field($field) {
+function _views_pgsql_process_field($field) {
   if (!isset($field['size'])) {
     $field['size'] = 'normal';
   }
   // Set the correct database-engine specific datatype.
   if (!isset($field['pgsql_type'])) {
-    $map = views_pqsql_type_map();
+    $map = views_pgsql_type_map();
     $field['pgsql_type'] = $map[$field['type'] .':'. $field['size']];
   }
   if ($field['type'] == 'serial') {
@@ -690,14 +690,14 @@ function _views_pqsql_process_field($field) {
  * Create an SQL string for a field to be used in table creation or alteration.
  *
  * Before passing a field out of a schema definition into this function it has
- * to be processed by _views_pqsql_process_field().
+ * to be processed by _views_pgsql_process_field().
  *
  * @param $name
  *    Name of the field.
  * @param $spec
  *    The field specification, as per the schema data structure format.
  */
-function _views_pqsql_create_field_sql($name, $spec) {
+function _views_pgsql_create_field_sql($name, $spec) {
   $sql = $name .' '. $spec['pgsql_type'];
 
   if ($spec['type'] == 'serial') {
@@ -740,7 +740,7 @@ function _views_pqsql_create_field_sql($name, $spec) {
  * @param $new_name
  *   The new name for the table.
  */
-function views_pqsql_rename_table(&$ret, $table, $new_name) {
+function views_pgsql_rename_table(&$ret, $table, $new_name) {
   $ret[] = update_sql('ALTER TABLE {'. $table .'} RENAME TO {'. $new_name .'}');
 }
 
@@ -752,7 +752,7 @@ function views_pqsql_rename_table(&$ret, $table, $new_name) {
  * @param $table
  *   The table to be dropped.
  */
-function views_pqsql_drop_table(&$ret, $table) {
+function views_pgsql_drop_table(&$ret, $table) {
   $ret[] = update_sql('DROP TABLE {'. $table .'}');
 }
 
@@ -776,29 +776,29 @@ function views_pqsql_drop_table(&$ret, $table) {
  *   table along with adding the field. The format is the same as a
  *   table specification but without the 'fields' element.  If you are
  *   adding a type 'serial' field, you MUST specify at least one key
- *   or index including it in this array. @see views_pqsql_change_field for more
+ *   or index including it in this array. @see views_pgsql_change_field for more
  *   explanation why.
  */
-function views_pqsql_add_field(&$ret, $table, $field, $spec, $new_keys = array()) {
+function views_pgsql_add_field(&$ret, $table, $field, $spec, $new_keys = array()) {
   $fixnull = FALSE;
   if (!empty($spec['not null']) && !isset($spec['default'])) {
     $fixnull = TRUE;
     $spec['not null'] = FALSE;
   }
   $query = 'ALTER TABLE {'. $table .'} ADD COLUMN ';
-  $query .= _views_pqsql_create_field_sql($field, _views_pqsql_process_field($spec));
+  $query .= _views_pgsql_create_field_sql($field, _views_pgsql_process_field($spec));
   $ret[] = update_sql($query);
   if (isset($spec['initial'])) {
     // All this because update_sql does not support %-placeholders.
-    $sql = 'UPDATE {'. $table .'} SET '. $field .' = '. views_pqsql_type_placeholder($spec['type']);
-    $result = views_pqsql_query($sql, $spec['initial']);
+    $sql = 'UPDATE {'. $table .'} SET '. $field .' = '. views_pgsql_type_placeholder($spec['type']);
+    $result = views_pgsql_query($sql, $spec['initial']);
     $ret[] = array('success' => $result !== FALSE, 'query' => check_plain($sql .' ('. $spec['initial'] .')'));
   }
   if ($fixnull) {
     $ret[] = update_sql("ALTER TABLE {". $table ."} ALTER $field SET NOT NULL");
   }
   if (isset($new_keys)) {
-    _views_pqsql_create_keys($ret, $table, $new_keys);
+    _views_pgsql_create_keys($ret, $table, $new_keys);
   }
 }
 
@@ -812,7 +812,7 @@ function views_pqsql_add_field(&$ret, $table, $field, $spec, $new_keys = array()
  * @param $field
  *   The field to be dropped.
  */
-function views_pqsql_drop_field(&$ret, $table, $field) {
+function views_pgsql_drop_field(&$ret, $table, $field) {
   $ret[] = update_sql('ALTER TABLE {'. $table .'} DROP COLUMN '. $field);
 }
 
@@ -828,7 +828,7 @@ function views_pqsql_drop_field(&$ret, $table, $field) {
  * @param $default
  *   Default value to be set. NULL for 'default NULL'.
  */
-function views_pqsql_field_set_default(&$ret, $table, $field, $default) {
+function views_pgsql_field_set_default(&$ret, $table, $field, $default) {
   if ($default == NULL) {
     $default = 'NULL';
   }
@@ -849,7 +849,7 @@ function views_pqsql_field_set_default(&$ret, $table, $field, $default) {
  * @param $field
  *   The field to be altered.
  */
-function views_pqsql_field_set_no_default(&$ret, $table, $field) {
+function views_pgsql_field_set_no_default(&$ret, $table, $field) {
   $ret[] = update_sql('ALTER TABLE {'. $table .'} ALTER COLUMN '. $field .' DROP DEFAULT');
 }
 
@@ -863,7 +863,7 @@ function views_pqsql_field_set_no_default(&$ret, $table, $field) {
  * @param $fields
  *   Fields for the primary key.
  */
-function views_pqsql_add_primary_key(&$ret, $table, $fields) {
+function views_pgsql_add_primary_key(&$ret, $table, $fields) {
   $ret[] = update_sql('ALTER TABLE {'. $table .'} ADD PRIMARY KEY ('.
     implode(',', $fields) .')');
 }
@@ -876,7 +876,7 @@ function views_pqsql_add_primary_key(&$ret, $table, $fields) {
  * @param $table
  *   The table to be altered.
  */
-function views_pqsql_drop_primary_key(&$ret, $table) {
+function views_pgsql_drop_primary_key(&$ret, $table) {
   $ret[] = update_sql('ALTER TABLE {'. $table .'} DROP CONSTRAINT {'. $table .'}_pkey');
 }
 
@@ -892,7 +892,7 @@ function views_pqsql_drop_primary_key(&$ret, $table) {
  * @param $fields
  *   An array of field names.
  */
-function views_pqsql_add_unique_key(&$ret, $table, $name, $fields) {
+function views_pgsql_add_unique_key(&$ret, $table, $name, $fields) {
   $name = '{'. $table .'}_'. $name .'_key';
   $ret[] = update_sql('ALTER TABLE {'. $table .'} ADD CONSTRAINT '.
     $name .' UNIQUE ('. implode(',', $fields) .')');
@@ -908,7 +908,7 @@ function views_pqsql_add_unique_key(&$ret, $table, $name, $fields) {
  * @param $name
  *   The name of the key.
  */
-function views_pqsql_drop_unique_key(&$ret, $table, $name) {
+function views_pgsql_drop_unique_key(&$ret, $table, $name) {
   $name = '{'. $table .'}_'. $name .'_key';
   $ret[] = update_sql('ALTER TABLE {'. $table .'} DROP CONSTRAINT '. $name);
 }
@@ -925,8 +925,8 @@ function views_pqsql_drop_unique_key(&$ret, $table, $name) {
  * @param $fields
  *   An array of field names.
  */
-function views_pqsql_add_index(&$ret, $table, $name, $fields) {
-  $ret[] = update_sql(_views_pqsql_create_index_sql($table, $name, $fields));
+function views_pgsql_add_index(&$ret, $table, $name, $fields) {
+  $ret[] = update_sql(_views_pgsql_create_index_sql($table, $name, $fields));
 }
 
 /**
@@ -939,7 +939,7 @@ function views_pqsql_add_index(&$ret, $table, $name, $fields) {
  * @param $name
  *   The name of the index.
  */
-function views_pqsql_drop_index(&$ret, $table, $name) {
+function views_pgsql_drop_index(&$ret, $table, $name) {
   $name = '{'. $table .'}_'. $name .'_idx';
   $ret[] = update_sql('DROP INDEX '. $name);
 }
@@ -951,9 +951,9 @@ function views_pqsql_drop_index(&$ret, $table, $name) {
  * recreate all indices and primary keys that are using the changed field.
  *
  * That means that you have to drop all affected keys and indexes with
- * views_pqsql_drop_{primary_key,unique_key,index}() before calling views_pqsql_change_field().
+ * views_pgsql_drop_{primary_key,unique_key,index}() before calling views_pgsql_change_field().
  * To recreate the keys and indices, pass the key definitions as the
- * optional $new_keys argument directly to views_pqsql_change_field().
+ * optional $new_keys argument directly to views_pgsql_change_field().
  *
  * For example, suppose you have:
  * @code
@@ -967,8 +967,8 @@ function views_pqsql_drop_index(&$ret, $table, $name) {
  * and you want to change foo.bar to be type serial, leaving it as the
  * primary key.  The correct sequence is:
  * @code
- * views_pqsql_drop_primary_key($ret, 'foo');
- * views_pqsql_change_field($ret, 'foo', 'bar', 'bar',
+ * views_pgsql_drop_primary_key($ret, 'foo');
+ * views_pgsql_change_field($ret, 'foo', 'bar', 'bar',
  *   array('type' => 'serial', 'not null' => TRUE),
  *   array('primary key' => array('bar')));
  * @endcode
@@ -981,13 +981,13 @@ function views_pqsql_drop_index(&$ret, $table, $name) {
  *
  * On MySQL, all type 'serial' fields must be part of at least one key
  * or index as soon as they are created.  You cannot use
- * views_pqsql_add_{primary_key,unique_key,index}() for this purpose because
+ * views_pgsql_add_{primary_key,unique_key,index}() for this purpose because
  * the ALTER TABLE command will fail to add the column without a key
  * or index specification.  The solution is to use the optional
  * $new_keys argument to create the key or index at the same time as
  * field.
  *
- * You could use views_pqsql_add_{primary_key,unique_key,index}() in all cases
+ * You could use views_pgsql_add_{primary_key,unique_key,index}() in all cases
  * unless you are converting a field to be type serial. You can use
  * the $new_keys argument in all cases.
  *
@@ -1006,7 +1006,7 @@ function views_pqsql_drop_index(&$ret, $table, $name) {
  *   table along with changing the field. The format is the same as a
  *   table specification but without the 'fields' element.
  */
-function views_pqsql_change_field(&$ret, $table, $field, $field_new, $spec, $new_keys = array()) {
+function views_pgsql_change_field(&$ret, $table, $field, $field_new, $spec, $new_keys = array()) {
   $ret[] = update_sql('ALTER TABLE {'. $table .'} RENAME "'. $field .'" TO "'. $field .'_old"');
   $not_null = isset($spec['not null']) ? $spec['not null'] : FALSE;
   unset($spec['not null']);
@@ -1014,12 +1014,12 @@ function views_pqsql_change_field(&$ret, $table, $field, $field_new, $spec, $new
   if (!array_key_exists('size', $spec)) {
     $spec['size'] = 'normal';
   }
-  views_pqsql_add_field($ret, $table, "$field_new", $spec);
+  views_pgsql_add_field($ret, $table, "$field_new", $spec);
 
   // We need to type cast the new column to best transfer the data
-  // views_pqsql_type_map will return possiblities that are not 'cast-able'
+  // views_pgsql_type_map will return possiblities that are not 'cast-able'
   // such as serial - they must be made 'int' instead.
-  $map =  views_pqsql_type_map();
+  $map =  views_pgsql_type_map();
   $typecast = $map[$spec['type'] .':'. $spec['size']];
   if (in_array($typecast, array('serial', 'bigserial', 'numeric'))) {
     $typecast = 'int';
@@ -1030,10 +1030,10 @@ function views_pqsql_change_field(&$ret, $table, $field, $field_new, $spec, $new
     $ret[] = update_sql("ALTER TABLE {". $table ."} ALTER $field_new SET NOT NULL");
   }
 
-  views_pqsql_drop_field($ret, $table, $field .'_old');
+  views_pgsql_drop_field($ret, $table, $field .'_old');
 
   if (isset($new_keys)) {
-    _views_pqsql_create_keys($ret, $table, $new_keys);
+    _views_pgsql_create_keys($ret, $table, $new_keys);
   }
 }
 
