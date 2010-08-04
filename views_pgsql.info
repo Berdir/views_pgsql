@@ -1,0 +1,4 @@
+;$Id$
+name = views_pqsql
+description = 'description of views_pqsql'
+core = 6.x
