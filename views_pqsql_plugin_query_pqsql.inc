@@ -96,10 +96,10 @@ class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
       }
 
       // Detect an external database.
-//       if (isset($view->base_database)) {
-//         db_set_active($view->base_database);
-//         $external = TRUE;
-//       }
+      if (isset($view->base_database)) {
+        views_pqsql_set_active($view->base_database);
+        $external = TRUE;
+      }
 
       $start = views_microtime();
 
@@ -131,9 +131,9 @@ class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
         $view->total_rows = $this->pager->get_total_items();
       }
 
-//       if ($external) {
-//         db_set_active();
-//       }
+      if ($external) {
+        views_pqsql_set_active();
+      }
     }
     $view->execute_time = views_microtime() - $start;
   }
