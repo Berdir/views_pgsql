@@ -101,11 +101,13 @@ function views_pqsql_version() {
 
 /**
  * Initialize a database connection.
+ * 
+ * @see db_connect
  */
 function views_pqsql_connect($url) {
   // Check if PostgreSQL support is present in PHP
   if (!function_exists('pg_connect')) {
-    _views_pqsql_error_page('Unable to use the PostgreSQL database because the PostgreSQL extension for PHP is not installed. Check your <code>php.ini</code> to see how you can enable it.');
+    drupal_set_message(t('Unable to use the PostgreSQL database because the PostgreSQL extension for PHP is not installed. Check your <code>php.ini</code> to see how you can enable it.'));
   }
 
   $url = parse_url($url);
