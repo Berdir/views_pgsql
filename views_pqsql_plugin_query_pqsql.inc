@@ -2,7 +2,12 @@
 // $Id: $
 
 class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
-    function compile_fields($fields_array) {
+  function init($base_table = 'node', $base_field = 'nid') {
+    require_once drupal_get_path('module', 'views_pqsql') . '/views_pqsql.inc';
+
+    parent::init($base_table, $base_field);
+  }
+  function compile_fields($fields_array) {
     $fields = $distinct = array();
     $non_aggregates = array();
 

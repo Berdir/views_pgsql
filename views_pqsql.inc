@@ -12,6 +12,64 @@
  */
 
 /**
+ * Activate a database for future queries.
+ *
+ * If it is necessary to use external databases in a project, this function can
+ * be used to change where database queries are sent. If the database has not
+ * yet been used, it is initialized using the URL specified for that name in
+ * Drupal's configuration file. If this name is not defined, a duplicate of the
+ * default connection is made instead.
+ *
+ * Be sure to change the connection back to the default when done with custom
+ * code.
+ *
+ * @param $name
+ *   The name assigned to the newly active database connection. If omitted, the
+ *   default connection will be made active.
+ *
+ * @return the name of the previously active database or FALSE if non was found.
+ */
+function views_pqsql_set_active($name = 'default') {
+  global $db_url, $db_type, $active_db;
+  static $db_conns, $active_name = FALSE;
+
+  if (empty($db_url)) {
+    include_once 'includes/install.inc';
+    install_goto('install.php');
+  }
+
+  if (!isset($db_conns[$name])) {
+    // Initiate a new connection, using the named DB URL specified.
+    if (is_array($db_url)) {
+      $connect_url = array_key_exists($name, $db_url) ? $db_url[$name] : $db_url['default'];
+    }
+    else {
+      $connect_url = $db_url;
+    }
+
+    $db_type = substr($connect_url, 0, strpos($connect_url, '://'));
+//     $handler = "./includes/database.$db_type.inc";
+
+    if (is_file($handler)) {
+      include_once $handler;
+    }
+    else {
+      _db_error_page("The database type '". $db_type ."' is unsupported. Please use either 'mysql' or 'mysqli' for MySQL, or 'pgsql' for PostgreSQL databases.");
+    }
+
+    $db_conns[$name] = views_pqsql_connect($connect_url);
+  }
+
+  $previous_name = $active_name;
+  // Set the active connection.
+  $active_name = $name;
+  $active_db = $db_conns[$name];
+
+  return $previous_name;
+}
+
+
+/**
  * Report database status.
  */
 function views_pqsql_status_report() {
@@ -116,7 +174,7 @@ function views_pqsql_connect($url) {
 function views_pqsql_query($query) {
   $args = func_get_args();
   array_shift($args);
-  $query = views_pqsql_prefix_tables($query);
+  $query = db_prefix_tables($query);
   if (isset($args[0]) and is_array($args[0])) { // 'All arguments in one array' syntax
     $args = $args[0];
   }
@@ -275,7 +333,7 @@ function views_pqsql_query_range($query) {
   $from = array_pop($args);
   array_shift($args);
 
-  $query = views_pqsql_prefix_tables($query);
+  $query = db_prefix_tables($query);
   if (isset($args[0]) and is_array($args[0])) { // 'All arguments in one array' syntax
     $args = $args[0];
   }
@@ -322,13 +380,54 @@ function views_pqsql_query_temporary($query) {
   $tablename = array_pop($args);
   array_shift($args);
 
-  $query = preg_replace('/^SELECT/i', 'CREATE TEMPORARY TABLE '. $tablename .' AS SELECT', views_pqsql_prefix_tables($query));
+  $query = preg_replace('/^SELECT/i', 'CREATE TEMPORARY TABLE '. $tablename .' AS SELECT', db_prefix_tables($query));
   if (isset($args[0]) and is_array($args[0])) { // 'All arguments in one array' syntax
     $args = $args[0];
   }
   _views_pqsql_query_callback($args, TRUE);
   $query = preg_replace_callback(DB_QUERY_REGEXP, '_views_pqsql_query_callback', $query);
   return _views_pqsql_query($query);
+}
+
+/**
+ * Helper function for db_query().
+ */
+function _views_pqsql_query_callback($match, $init = FALSE) {
+  static $args = NULL;
+  if ($init) {
+    $args = $match;
+    return;
+  }
+
+  switch ($match[1]) {
+    case '%d': // We must use type casting to int to convert FALSE/NULL/(TRUE?)
+      $value = array_shift($args);
+      // Do we need special bigint handling?
+      if ($value > PHP_INT_MAX) {
+        $precision = ini_get('precision');
+        @ini_set('precision', 16);
+        $value = sprintf('%.0f', $value);
+        @ini_set('precision', $precision);
+      }
+      else {
+        $value = (int) $value;
+      }
+      // We don't need db_escape_string as numbers are db-safe.
+      return $value;
+    case '%s':
+      return views_pqsql_escape_string(array_shift($args));
+    case '%n':
+      // Numeric values have arbitrary precision, so can't be treated as float.
+      // is_numeric() allows hex values (0xFF), but they are not valid.
+      $value = trim(array_shift($args));
+      return is_numeric($value) && !preg_match('/x/i', $value) ? $value : '0';
+    case '%%':
+      return '%';
+    case '%f':
+      return (float) array_shift($args);
+    case '%b': // binary data
+      return views_pqsql_encode_blob(array_shift($args));
+  }
 }
 
 /**

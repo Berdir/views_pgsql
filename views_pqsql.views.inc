@@ -2,7 +2,7 @@
 // $Id: $
 
 /**
- * Implements hook_views_plguins().
+ * Implements hook_views_plugins().
  */
 function views_pqsql_views_plugins() {
   return array(
