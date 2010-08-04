@@ -4,6 +4,9 @@
 /**
  * @file
  * Database interface code for PostgreSQL database servers.
+ * 
+ * @todo
+ * Copy _db_error_page and use it.
  */
 
 /**
@@ -108,6 +111,8 @@ function views_pgsql_connect($url) {
   // Check if PostgreSQL support is present in PHP
   if (!function_exists('pg_connect')) {
     drupal_set_message(t('Unable to use the PostgreSQL database because the PostgreSQL extension for PHP is not installed. Check your <code>php.ini</code> to see how you can enable it.'));
+    drupal_access_denied();
+    exit;
   }
 
   $url = parse_url($url);
