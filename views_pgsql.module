@@ -2,8 +2,6 @@
 // $Id$
 
 /**
- * views_pqsql.module
- *
  * @author
  * Daniel Wehner <daniel.wehner@erdfisch.de>
  */
@@ -11,7 +9,7 @@
 /**
  * Implements hook_views_api().
  */
-function views_pqsql_views_api() {
+function views_pgsql_views_api() {
   return array(
     'api' => '3.0-alpha1',
     );

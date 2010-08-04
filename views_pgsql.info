@@ -1,4 +1,5 @@
 ;$Id$
-name = views_pqsql
-description = 'description of views_pqsql'
+name = Pgsql Views backend
+description = 'This module allows to query against a pgsql database even your default drupal one is mysql'
 core = 6.x
+dependenciesp[] = views
