@@ -1,5 +1,5 @@
 <?php
-// $Id: $
+// $Id$
 
 class views_pgsql_plugin_query_pgsql extends views_plugin_query_default {
   function init($base_table = 'node', $base_field = 'nid') {
