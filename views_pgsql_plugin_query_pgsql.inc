@@ -1,12 +1,18 @@
 <?php
 // $Id: $
 
-class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
+class views_pgsql_plugin_query_pgsql extends views_plugin_query_default {
   function init($base_table = 'node', $base_field = 'nid') {
-    require_once drupal_get_path('module', 'views_pqsql') . '/views_pqsql.inc';
+    require_once drupal_get_path('module', 'views_pgsql') . '/views_pgsql.inc';
 
     parent::init($base_table, $base_field);
   }
+
+  /**
+   * Returns the array of every field of the field-part of the query.
+   *
+   * This function differs from the parent one by not using GLOBALS['db_type'].
+   */
   function compile_fields($fields_array) {
     $fields = $distinct = array();
     $non_aggregates = array();
@@ -74,6 +80,8 @@ class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
    *
    * Values to set: $view->result, $view->total_rows, $view->execute_time,
    * $view->current_page.
+   * 
+   * The changes here is that it uses the views_pgsql_ functions instead of db_.
    */
   function execute(&$view) {
     $external = FALSE; // Whether this query will run against an external database.
@@ -97,7 +105,7 @@ class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
 
       // Detect an external database.
       if (isset($view->base_database)) {
-        views_pqsql_set_active($view->base_database);
+        views_pgsql_set_active($view->base_database);
         $external = TRUE;
       }
 
@@ -114,14 +122,14 @@ class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
         // We can't have an offset without a limit, so provide a very large limit instead.
         $limit  = intval(!empty($this->limit) ? $this->limit : 999999);
         $offset = intval(!empty($this->offset) ? $this->offset : 0);
-        $result = views_pqsql_query_range($query, $args, $offset, $limit);
+        $result = views_pgsql_query_range($query, $args, $offset, $limit);
       }
       else {
-        $result = views_pqsql_query($query, $args);
+        $result = views_pgsql_query($query, $args);
       }
 
       $view->result = array();
-      while ($item = views_pqsql_fetch_object($result)) {
+      while ($item = views_pgsql_fetch_object($result)) {
         $view->result[] = $item;
       }
 
@@ -132,7 +140,7 @@ class views_pqsql_plugin_query_pqsql extends views_plugin_query_default {
       }
 
       if ($external) {
-        views_pqsql_set_active();
+        views_pgsql_set_active();
       }
     }
     $view->execute_time = views_microtime() - $start;

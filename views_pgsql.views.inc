@@ -1,5 +1,5 @@
 <?php
-// $Id: $
+// $Id$
 
 /**
  * Implements hook_views_plugins().
