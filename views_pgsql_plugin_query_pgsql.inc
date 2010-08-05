@@ -139,9 +139,9 @@ class views_pgsql_plugin_query_pgsql extends views_plugin_query_default {
         $view->total_rows = $this->pager->get_total_items();
       }
 
-      if ($external) {
-        views_pgsql_set_active();
-      }
+//       if ($external) {
+//         views_pgsql_set_active();
+//       }
     }
     $view->execute_time = views_microtime() - $start;
   }

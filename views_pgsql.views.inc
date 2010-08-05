@@ -14,5 +14,15 @@ function views_pgsql_views_plugins() {
         'parent' => 'views_query',
       ),
     ),
+    'pager' => array(
+      'pgsql_full' => array(
+        'title' => t('Paged output, full pager(PGSQL)'),
+        'help' => t('Paged output, full Drupal style(PGSQL)'),
+        'handler' => 'views_pgsql_plugin_pager_pgsql_full',
+//         'help topic' => 'pager-full',
+        'uses options' => TRUE,
+        'parent' => 'full',
+      ),
+    ),
   );
 }
