@@ -33,7 +33,7 @@
  * @return the name of the previously active database or FALSE if non was found.
  */
 function views_pgsql_set_active($name = 'default') {
-  global $db_url, $db_type, $active_db;
+  global $db_url, $db_type, $views_pgsql_active_db;
   static $db_conns, $active_name = FALSE;
 
   if (empty($db_url)) {
@@ -66,7 +66,7 @@ function views_pgsql_set_active($name = 'default') {
   $previous_name = $active_name;
   // Set the active connection.
   $active_name = $name;
-  $active_db = $db_conns[$name];
+  $views_pgsql_active_db = $db_conns[$name];
 
   return $previous_name;
 }
@@ -194,14 +194,14 @@ function views_pgsql_query($query) {
  * Helper function for views_pgsql_query().
  */
 function _views_pgsql_query($query, $debug = 0) {
-  global $active_db, $last_result, $queries;
+  global $views_pgsql_active_db, $last_result, $queries;
 
   if (variable_get('dev_query', 0)) {
     list($usec, $sec) = explode(' ', microtime());
     $timer = (float)$usec + (float)$sec;
   }
 
-  $last_result = pg_query($active_db, $query);
+  $last_result = pg_query($views_pgsql_active_db, $query);
 
   if (variable_get('dev_query', 0)) {
     $bt = debug_backtrace();
@@ -213,7 +213,7 @@ function _views_pgsql_query($query, $debug = 0) {
   }
 
   if ($debug) {
-    print '<p>query: '. $query .'<br />error:'. pg_last_error($active_db) .'</p>';
+    print '<p>query: '. $query .'<br />error:'. pg_last_error($views_pgsql_active_db) .'</p>';
   }
 
   if ($last_result !== FALSE) {
@@ -222,7 +222,7 @@ function _views_pgsql_query($query, $debug = 0) {
   else {
     // Indicate to drupal_error_handler that this is a database error.
     ${DB_ERROR} = TRUE;
-    trigger_error(check_plain(pg_last_error($active_db) ."\nquery: ". $query), E_USER_WARNING);
+    trigger_error(check_plain(pg_last_error($views_pgsql_active_db) ."\nquery: ". $query), E_USER_WARNING);
     return FALSE;
   }
 }
@@ -281,8 +281,8 @@ function views_pgsql_result($result) {
  * Determine whether the previous query caused an error.
  */
 function views_pgsql_error() {
-  global $active_db;
-  return pg_last_error($active_db);
+  global $views_pgsql_active_db;
+  return pg_last_error($views_pgsql_active_db);
 }
 
 /**
