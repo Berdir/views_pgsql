@@ -2,10 +2,10 @@
 // $Id$
 
 class views_pgsql_plugin_query_pgsql extends views_plugin_query_default {
-  function init($base_table = 'node', $base_field = 'nid') {
+  function init($base_table = 'node', $base_field = 'nid', $options) {
     require_once drupal_get_path('module', 'views_pgsql') . '/views_pgsql.inc';
 
-    parent::init($base_table, $base_field);
+    parent::init($base_table, $base_field, $options);
   }
 
   /**
