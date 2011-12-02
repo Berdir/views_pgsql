@@ -85,15 +85,15 @@ class views_pgsql_plugin_query_pgsql extends views_plugin_query_default {
    */
   function execute(&$view) {
     $external = FALSE; // Whether this query will run against an external database.
-    $query = db_rewrite_sql($view->build_info['query'], $view->base_table, $view->base_field, array('view' => &$view));
-    $count_query = db_rewrite_sql($view->build_info['count_query'], $view->base_table, $view->base_field, array('view' => &$view));
-    $args = $view->build_info['query_args'];
+    $query = $this->final_query;
+    $count_query = $this->count_query;
+    $args = $this->query_args;
 
     vpr($query);
 
     $items = array();
     if ($query) {
-      $replacements = module_invoke_all('views_query_substitutions', $view);
+      $replacements = $this->view->substitutions();
       $query = str_replace(array_keys($replacements), $replacements, $query);
       $count_query = 'SELECT COUNT(*) FROM (' . str_replace(array_keys($replacements), $replacements, $count_query) . ') count_alias';
 
